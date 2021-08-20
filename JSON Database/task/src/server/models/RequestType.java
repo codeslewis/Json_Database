@@ -1,4 +1,4 @@
-package server;
+package server.models;
 
 public enum RequestType {
     EXIT("exit"),

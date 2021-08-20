@@ -87,88 +87,6 @@ files:
         }
     }
   learner_created: false
-- name: src/server/Database.java
-  visible: true
-  text: |
-    package server;
-
-    public class Database {
-
-        private String[] cells;
-        private static Database instance;
-
-        private Database() {
-            cells = new String[100];
-        }
-
-        public static Database getInstance() {
-            if (instance == null) {
-                instance = new Database();
-            }
-            return instance;
-        }
-
-        public String handleInput(String[] commands) throws Exception {
-            Command command = Command.valueOf(commands[0].toUpperCase());
-            if (command == Command.EXIT) {
-                System.exit(0);
-            }
-            if (indexOutOfBounds(Integer.parseInt(commands[1]))) {
-                throw new Exception("ERROR");
-            }
-            switch (command) {
-                case GET:
-                    return get(Integer.parseInt(commands[1]));
-                case SET:
-                    return set(Integer.parseInt(commands[1]), buildString(commands));
-                case DELETE:
-                    return delete(Integer.parseInt(commands[1]));
-                default:
-                    throw new Exception("ERROR");
-            }
-        }
-
-        private String get(int index) throws Exception {
-            if (cells[index - 1] == null) {
-                throw new Exception("ERROR");
-            }
-            return cells[index - 1];
-        }
-
-        private String set(int index, String value) {
-            cells[index -1] = value;
-            return "OK";
-        }
-
-        private String delete(int index) {
-            cells[index - 1] = null;
-            return "OK";
-        }
-
-        private boolean indexOutOfBounds(int index) {
-            return index < 1 || index > 100;
-        }
-
-        private String buildString(String[] commands) {
-            StringBuilder result = new StringBuilder();
-            for (int i = 2; i < commands.length; i++) {
-                result.append(commands[i]);
-                result.append(" ");
-            }
-            result.deleteCharAt(result.length() - 1);
-            return result.toString();
-        }
-    }
-  learner_created: false
-- name: src/server/Result.java
-  visible: true
-  text: |
-    package server;
-
-    public enum Result {
-        OK, ERROR
-    }
-  learner_created: false
 - name: src/server/Session.java
   visible: true
   text: |
@@ -592,18 +510,106 @@ files:
         }
     }
   learner_created: false
-- name: src/server/Request.java
+- name: src/server/models/Request.java
   visible: true
   learner_created: true
-- name: src/server/Response.java
+- name: src/server/models/Response.java
   visible: true
   learner_created: true
-- name: src/server/RequestType.java
+- name: src/server/models/RequestType.java
+  visible: true
+  learner_created: true
+- name: src/server/models/Result.java
+  visible: true
+  text: |
+    package server;
+
+    public enum Result {
+        OK, ERROR
+    }
+  learner_created: false
+- name: src/server/controllers/Database.java
+  visible: true
+  text: |
+    package server;
+
+    public class Database {
+
+        private String[] cells;
+        private static Database instance;
+
+        private Database() {
+            cells = new String[100];
+        }
+
+        public static Database getInstance() {
+            if (instance == null) {
+                instance = new Database();
+            }
+            return instance;
+        }
+
+        public String handleInput(String[] commands) throws Exception {
+            Command command = Command.valueOf(commands[0].toUpperCase());
+            if (command == Command.EXIT) {
+                System.exit(0);
+            }
+            if (indexOutOfBounds(Integer.parseInt(commands[1]))) {
+                throw new Exception("ERROR");
+            }
+            switch (command) {
+                case GET:
+                    return get(Integer.parseInt(commands[1]));
+                case SET:
+                    return set(Integer.parseInt(commands[1]), buildString(commands));
+                case DELETE:
+                    return delete(Integer.parseInt(commands[1]));
+                default:
+                    throw new Exception("ERROR");
+            }
+        }
+
+        private String get(int index) throws Exception {
+            if (cells[index - 1] == null) {
+                throw new Exception("ERROR");
+            }
+            return cells[index - 1];
+        }
+
+        private String set(int index, String value) {
+            cells[index -1] = value;
+            return "OK";
+        }
+
+        private String delete(int index) {
+            cells[index - 1] = null;
+            return "OK";
+        }
+
+        private boolean indexOutOfBounds(int index) {
+            return index < 1 || index > 100;
+        }
+
+        private String buildString(String[] commands) {
+            StringBuilder result = new StringBuilder();
+            for (int i = 2; i < commands.length; i++) {
+                result.append(commands[i]);
+                result.append(" ");
+            }
+            result.deleteCharAt(result.length() - 1);
+            return result.toString();
+        }
+    }
+  learner_created: false
+- name: src/server/repositories/DataRepository.java
+  visible: true
+  learner_created: true
+- name: src/server/exceptions/NoSuchKeyException.java
   visible: true
   learner_created: true
 feedback_link: https://hyperskill.org/projects/65/stages/351/implement#comment
 status: Solved
 feedback:
   message: Congratulations!
-  time: Fri, 20 Aug 2021 09:41:34 UTC
+  time: Fri, 20 Aug 2021 10:32:03 UTC
 record: -1

@@ -1,5 +1,7 @@
 package server;
 
+import server.controllers.Database;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -27,14 +29,14 @@ public class Session extends Thread {
         ) {
             String request = input.readUTF();
 
-            Database db = Database.getInstance();
+//            Database db = Database.getInstance();
 //            String response = db.handleInput(request.split(" "));
 
 //            output.writeUTF(response);
 
-            if (db.isExit()) {
-                exit = true;
-            }
+//            if (db.isExit()) {
+//                exit = true;
+//            }
         } catch (IOException e) {
             e.printStackTrace();
         }

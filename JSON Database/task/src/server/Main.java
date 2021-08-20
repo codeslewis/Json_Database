@@ -1,5 +1,10 @@
 package server;
 
+import server.controllers.Database;
+import server.models.Request;
+import server.models.Response;
+import server.repositories.DataRepository;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -26,7 +31,8 @@ public class Main {
             ) {
                 Request request = Request.deserializeFromJson(input.readUTF());
 
-                Database db = Database.getInstance();
+//                Database db = Database.getInstance();
+                Database db = new Database(DataRepository.getInstance());
                 Response res = db.handleRequest(request);
                 output.writeUTF(res.serializeToJson());
                 if (db.isExit()) {

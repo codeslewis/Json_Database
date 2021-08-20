@@ -1,25 +1,17 @@
-package server;
+package server.controllers;
 
-import java.util.HashMap;
-import java.util.Map;
+import server.exceptions.NoSuchKeyException;
+import server.models.Request;
+import server.models.Response;
+import server.models.Result;
+import server.repositories.DataRepository;
 
 public class Database {
-
-    private final Map<String, String> data;
-    private static Database instance;
+    private final DataRepository source;
     private boolean exit = false;
 
-    {
-        data = new HashMap<>();
-    }
-
-    private Database() {}
-
-    public static Database getInstance() {
-        if (instance == null) {
-            instance = new Database();
-        }
-        return instance;
+    public Database(DataRepository source) {
+        this.source = source;
     }
 
     public boolean isExit() {
@@ -38,67 +30,77 @@ public class Database {
                 return handleDeleteRequest(request);
             default:
                 assert false : "Not all Enum constants handled";
-                return new Response();
+                return new Response.ResponseBuilder()
+                    .setResponse(Result.ERROR)
+                    .setReason("Unexpected Argument")
+                    .build();
         }
     }
 
     private Response handleDeleteRequest(Request request) {
-        Response response = new Response();
+        Response.ResponseBuilder response = new Response.ResponseBuilder();
         if (request.getOptionalKey().isPresent()) {
             String key = request.getOptionalKey().get();
-            if (data.containsKey(key)) {
-                data.remove(key);
+            try {
+                source.delete(key);
                 response.setResponse(Result.OK);
-                response.setValue(null);
-                response.setReason(null);
-            } else {
-                response.setReason("No such key");
+            } catch (NoSuchKeyException e) {
+                response
+                    .setResponse(Result.ERROR)
+                    .setReason("No such key");
             }
         } else {
             assert false : "Expect Key to be passed with DELETE request";
+            response
+                .setResponse(Result.ERROR)
+                .setReason("Expect Key to be passed with DELETE request");
         }
-        return response;
+        return response.build();
     }
 
     private Response handleSetRequest(Request request) {
-        Response response = new Response();
+        Response.ResponseBuilder response = new Response.ResponseBuilder();
         if (
             request.getOptionalKey().isPresent() &&
             request.getOptionalValue().isPresent()
         ) {
-            data.put(
+            source.set(
                 request.getOptionalKey().get(),
                 request.getOptionalValue().get()
             );
             response.setResponse(Result.OK);
-            response.setReason(null);
         } else {
             assert false : "Expect Key and value to be passed with SET request";
+            response
+                .setResponse(Result.ERROR)
+                .setReason("Either key or value not passed with SET request");
         }
-        return response;
+        return response.build();
     }
 
     private Response handleGetRequest(Request request) {
-        Response response = new Response();
+        Response.ResponseBuilder response = new Response.ResponseBuilder();
         if (request.getOptionalKey().isPresent()) {
             String key = request.getOptionalKey().get();
-            if (data.containsKey(key)) {
-                response.setResponse(Result.OK);
-                response.setValue(data.get(key));
-                response.setReason(null);
-            } else {
-                response.setReason("No such key");
+            try {
+                response
+                    .setValue(source.get(key))
+                    .setResponse(Result.OK);
+            } catch (NoSuchKeyException e) {
+                response
+                    .setResponse(Result.ERROR)
+                    .setReason("No such key");
             }
         } else {
             assert false : "Expect Key to be passed with GET request";
         }
-        return response;
+        return response.build();
     }
 
     private Response handleExitRequest() {
         this.exit = true;
-        Response response = new Response();
-        response.setResponse(Result.OK);
-        return response;
+        return new Response.ResponseBuilder()
+            .setResponse(Result.OK)
+            .build();
     }
 }

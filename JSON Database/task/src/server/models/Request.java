@@ -1,4 +1,4 @@
-package server;
+package server.models;
 
 import com.google.gson.Gson;
 
