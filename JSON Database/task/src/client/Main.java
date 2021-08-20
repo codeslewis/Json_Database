@@ -38,8 +38,6 @@ public class Main {
             System.out.println("Received: " + response);
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            System.out.println("Client closing socket");
         }
 
     }

@@ -28,9 +28,9 @@ public class Session extends Thread {
             String request = input.readUTF();
 
             Database db = Database.getInstance();
-            String response = db.handleInput(request.split(" "));
+//            String response = db.handleInput(request.split(" "));
 
-            output.writeUTF(response);
+//            output.writeUTF(response);
 
             if (db.isExit()) {
                 exit = true;
