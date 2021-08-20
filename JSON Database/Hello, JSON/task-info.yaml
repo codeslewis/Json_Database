@@ -169,15 +169,6 @@ files:
         OK, ERROR
     }
   learner_created: false
-- name: src/server/Command.java
-  visible: true
-  text: |
-    package server;
-
-    public enum Command {
-        EXIT, GET, SET, DELETE
-    }
-  learner_created: false
 - name: src/server/Session.java
   visible: true
   text: |
@@ -607,9 +598,12 @@ files:
 - name: src/server/Response.java
   visible: true
   learner_created: true
+- name: src/server/RequestType.java
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/projects/65/stages/351/implement#comment
 status: Solved
 feedback:
   message: Congratulations!
-  time: Fri, 20 Aug 2021 09:31:52 UTC
+  time: Fri, 20 Aug 2021 09:41:34 UTC
 record: -1

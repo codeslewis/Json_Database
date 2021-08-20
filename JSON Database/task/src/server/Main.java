@@ -27,13 +27,11 @@ public class Main {
                 Request request = Request.deserializeFromJson(input.readUTF());
 
                 Database db = Database.getInstance();
-//                String response = db.handleInput(request.split(" "));
                 Response res = db.handleRequest(request);
                 output.writeUTF(res.serializeToJson());
                 if (db.isExit()) {
                     exit = true;
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -15,20 +15,8 @@ public class Request {
         return new Gson().fromJson(json, Request.class);
     }
 
-    public Command getType() {
-        switch (this.type) {
-            case "get":
-                return Command.GET;
-            case "set":
-                return Command.SET;
-            case "delete":
-                return Command.DELETE;
-            case "exit":
-                return Command.EXIT;
-            default:
-                assert false : "Invalid Request type passed";
-                return null;
-        }
+    public RequestType getRequestType() {
+        return RequestType.getTypeFromString(this.type);
     }
 
     public Optional<String> getOptionalKey() {
