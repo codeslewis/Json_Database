@@ -6,38 +6,15 @@ import server.models.Response;
 import server.models.Result;
 import server.repositories.DataRepository;
 
-public class Database {
+public class Database extends Controller {
     private final DataRepository source;
-    private boolean exit = false;
 
     public Database(DataRepository source) {
         this.source = source;
     }
 
-    public boolean isExit() {
-        return exit;
-    }
-
-    public Response handleRequest(Request request) {
-        switch (request.getRequestType()) {
-            case EXIT:
-                return handleExitRequest();
-            case GET:
-                return handleGetRequest(request);
-            case SET:
-                return handleSetRequest(request);
-            case DELETE:
-                return handleDeleteRequest(request);
-            default:
-                assert false : "Not all Enum constants handled";
-                return new Response.ResponseBuilder()
-                    .setResponse(Result.ERROR)
-                    .setReason("Unexpected Argument")
-                    .build();
-        }
-    }
-
-    private Response handleDeleteRequest(Request request) {
+    @Override
+    protected Response handleDeleteRequest(Request request) {
         Response.ResponseBuilder response = new Response.ResponseBuilder();
         if (request.getOptionalKey().isPresent()) {
             String key = request.getOptionalKey().get();
@@ -58,7 +35,8 @@ public class Database {
         return response.build();
     }
 
-    private Response handleSetRequest(Request request) {
+    @Override
+    protected Response handleSetRequest(Request request) {
         Response.ResponseBuilder response = new Response.ResponseBuilder();
         if (
             request.getOptionalKey().isPresent() &&
@@ -78,7 +56,8 @@ public class Database {
         return response.build();
     }
 
-    private Response handleGetRequest(Request request) {
+    @Override
+    protected Response handleGetRequest(Request request) {
         Response.ResponseBuilder response = new Response.ResponseBuilder();
         if (request.getOptionalKey().isPresent()) {
             String key = request.getOptionalKey().get();
@@ -95,12 +74,5 @@ public class Database {
             assert false : "Expect Key to be passed with GET request";
         }
         return response.build();
-    }
-
-    private Response handleExitRequest() {
-        this.exit = true;
-        return new Response.ResponseBuilder()
-            .setResponse(Result.OK)
-            .build();
     }
 }

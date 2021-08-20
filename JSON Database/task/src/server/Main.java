@@ -1,5 +1,6 @@
 package server;
 
+import server.controllers.Controller;
 import server.controllers.Database;
 import server.models.Request;
 import server.models.Response;
@@ -31,11 +32,10 @@ public class Main {
             ) {
                 Request request = Request.deserializeFromJson(input.readUTF());
 
-//                Database db = Database.getInstance();
-                Database db = new Database(DataRepository.getInstance());
-                Response res = db.handleRequest(request);
+                Controller dbController = new Database(DataRepository.getInstance());
+                Response res = dbController.handleRequest(request);
                 output.writeUTF(res.serializeToJson());
-                if (db.isExit()) {
+                if (dbController.isExit()) {
                     exit = true;
                 }
             } catch (IOException e) {
