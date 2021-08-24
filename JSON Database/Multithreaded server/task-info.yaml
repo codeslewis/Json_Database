@@ -87,97 +87,6 @@ files:
         }
     }
   learner_created: false
-- name: src/server/Database.java
-  visible: true
-  text: |
-    package server;
-
-    public class Database {
-
-        private String[] cells;
-        private static Database instance;
-
-        private Database() {
-            cells = new String[100];
-        }
-
-        public static Database getInstance() {
-            if (instance == null) {
-                instance = new Database();
-            }
-            return instance;
-        }
-
-        public String handleInput(String[] commands) throws Exception {
-            Command command = Command.valueOf(commands[0].toUpperCase());
-            if (command == Command.EXIT) {
-                System.exit(0);
-            }
-            if (indexOutOfBounds(Integer.parseInt(commands[1]))) {
-                throw new Exception("ERROR");
-            }
-            switch (command) {
-                case GET:
-                    return get(Integer.parseInt(commands[1]));
-                case SET:
-                    return set(Integer.parseInt(commands[1]), buildString(commands));
-                case DELETE:
-                    return delete(Integer.parseInt(commands[1]));
-                default:
-                    throw new Exception("ERROR");
-            }
-        }
-
-        private String get(int index) throws Exception {
-            if (cells[index - 1] == null) {
-                throw new Exception("ERROR");
-            }
-            return cells[index - 1];
-        }
-
-        private String set(int index, String value) {
-            cells[index -1] = value;
-            return "OK";
-        }
-
-        private String delete(int index) {
-            cells[index - 1] = null;
-            return "OK";
-        }
-
-        private boolean indexOutOfBounds(int index) {
-            return index < 1 || index > 100;
-        }
-
-        private String buildString(String[] commands) {
-            StringBuilder result = new StringBuilder();
-            for (int i = 2; i < commands.length; i++) {
-                result.append(commands[i]);
-                result.append(" ");
-            }
-            result.deleteCharAt(result.length() - 1);
-            return result.toString();
-        }
-    }
-  learner_created: false
-- name: src/server/Result.java
-  visible: true
-  text: |
-    package server;
-
-    public enum Result {
-        OK, ERROR
-    }
-  learner_created: false
-- name: src/server/Command.java
-  visible: true
-  text: |
-    package server;
-
-    public enum Command {
-        EXIT, GET, SET, DELETE
-    }
-  learner_created: false
 - name: src/server/Session.java
   visible: true
   text: |
@@ -212,43 +121,6 @@ files:
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-    }
-  learner_created: false
-- name: test/JsonRequestBuilder.java
-  visible: false
-  text: |-
-    import com.google.gson.Gson;
-    import com.google.gson.JsonObject;
-
-    class JsonBuilder {
-
-        private final Gson gson = new Gson();
-        private final JsonObject jsonObject = new JsonObject();
-
-        private JsonBuilder() {
-        }
-
-        public static JsonBuilder newBuilder() {
-            return new JsonBuilder();
-        }
-
-        public JsonBuilder addValue(String key, String value) {
-            jsonObject.addProperty(key, value);
-            return this;
-        }
-
-        public JsonBuilder addJsonObject(String key, JsonObject object) {
-            jsonObject.add(key, object);
-            return this;
-        }
-
-        public String getAsString() {
-            return jsonObject.toString();
-        }
-
-        public JsonObject getAsJsonObject() {
-            return jsonObject;
         }
     }
   learner_created: false
@@ -777,6 +649,395 @@ files:
         }
     }
   learner_created: false
+- name: src/server/models/Result.java
+  visible: true
+  text: |
+    package server.models;
+
+    public enum Result {
+        OK, ERROR
+    }
+  learner_created: true
+- name: src/server/models/Request.java
+  visible: true
+  text: |
+    package server.models;
+
+    import com.google.gson.Gson;
+
+    import java.util.Optional;
+
+    public class Request {
+        private String type;
+        private String key;
+        private String value;
+
+        private Request() {}
+
+        public static Request deserializeFromJson(String json) {
+            return new Gson().fromJson(json, Request.class);
+        }
+
+        public RequestType getRequestType() {
+            return RequestType.getTypeFromString(this.type);
+        }
+
+        public Optional<String> getOptionalKey() {
+            return Optional.of(key);
+        }
+
+        public Optional<String> getOptionalValue() {
+            return Optional.of(value);
+        }
+    }
+  learner_created: true
+- name: src/server/exceptions/NoSuchKeyException.java
+  visible: true
+  text: |
+    package server.exceptions;
+
+    public class NoSuchKeyException extends IllegalArgumentException{
+    }
+  learner_created: true
+- name: src/server/controllers/Controller.java
+  visible: true
+  text: |
+    package server.controllers;
+
+    import server.models.Request;
+    import server.models.Response;
+    import server.models.Result;
+
+    public abstract class Controller {
+        protected boolean exit;
+
+        public boolean isExit() {
+            return exit;
+        }
+
+        public Response handleRequest(Request request) {
+            switch (request.getRequestType()) {
+                case EXIT:
+                    return handleExitRequest();
+                case GET:
+                    return handleGetRequest(request);
+                case SET:
+                    return handleSetRequest(request);
+                case DELETE:
+                    return handleDeleteRequest(request);
+                default:
+                    assert false : "Not all Enum constants handled";
+                    return new Response.ResponseBuilder()
+                            .setResponse(Result.ERROR)
+                            .setReason("Unexpected Argument")
+                            .build();
+            }
+        }
+        protected abstract Response handleDeleteRequest(Request request);
+        protected abstract Response handleSetRequest(Request request);
+        protected abstract Response handleGetRequest(Request request);
+
+        protected Response handleExitRequest() {
+            this.exit = true;
+            return new Response.ResponseBuilder()
+                    .setResponse(Result.OK)
+                    .build();
+        }
+    }
+  learner_created: true
+- name: src/server/repositories/DataRepository.java
+  visible: true
+  text: |
+    package server.repositories;
+
+    import server.exceptions.NoSuchKeyException;
+
+    import java.util.HashMap;
+    import java.util.Map;
+
+    public class DataRepository {
+        private final Map<String, String> dataSource;
+        private static DataRepository instance;
+
+        {
+            dataSource = new HashMap<>();
+        }
+
+        private DataRepository() {}
+
+        public static DataRepository getInstance() {
+            if (instance == null) {
+                instance = new DataRepository();
+            }
+            return instance;
+        }
+
+        public String get(String key) throws NoSuchKeyException {
+            if (dataSource.containsKey(key)) {
+                return dataSource.get(key);
+            } else {
+                throw new NoSuchKeyException();
+            }
+        }
+
+        public void set(String key, String value) {
+            dataSource.put(key, value);
+        }
+
+        public void delete(String key) {
+            if (dataSource.containsKey(key)) {
+                dataSource.remove(key);
+            } else {
+                throw new NoSuchKeyException();
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/controllers/Database.java
+  visible: true
+  text: |
+    package server.controllers;
+
+    import server.exceptions.NoSuchKeyException;
+    import server.models.Request;
+    import server.models.Response;
+    import server.models.Result;
+    import server.repositories.DataRepository;
+
+    public class Database extends Controller {
+        private final DataRepository source;
+
+        public Database(DataRepository source) {
+            this.source = source;
+        }
+
+        @Override
+        protected Response handleDeleteRequest(Request request) {
+            Response.ResponseBuilder response = new Response.ResponseBuilder();
+            if (request.getOptionalKey().isPresent()) {
+                String key = request.getOptionalKey().get();
+                try {
+                    source.delete(key);
+                    response.setResponse(Result.OK);
+                } catch (NoSuchKeyException e) {
+                    response
+                        .setResponse(Result.ERROR)
+                        .setReason("No such key");
+                }
+            } else {
+                assert false : "Expect Key to be passed with DELETE request";
+                response
+                    .setResponse(Result.ERROR)
+                    .setReason("Expect Key to be passed with DELETE request");
+            }
+            return response.build();
+        }
+
+        @Override
+        protected Response handleSetRequest(Request request) {
+            Response.ResponseBuilder response = new Response.ResponseBuilder();
+            if (
+                request.getOptionalKey().isPresent() &&
+                request.getOptionalValue().isPresent()
+            ) {
+                source.set(
+                    request.getOptionalKey().get(),
+                    request.getOptionalValue().get()
+                );
+                response.setResponse(Result.OK);
+            } else {
+                assert false : "Expect Key and value to be passed with SET request";
+                response
+                    .setResponse(Result.ERROR)
+                    .setReason("Either key or value not passed with SET request");
+            }
+            return response.build();
+        }
+
+        @Override
+        protected Response handleGetRequest(Request request) {
+            Response.ResponseBuilder response = new Response.ResponseBuilder();
+            if (request.getOptionalKey().isPresent()) {
+                String key = request.getOptionalKey().get();
+                try {
+                    response
+                        .setValue(source.get(key))
+                        .setResponse(Result.OK);
+                } catch (NoSuchKeyException e) {
+                    response
+                        .setResponse(Result.ERROR)
+                        .setReason("No such key");
+                }
+            } else {
+                assert false : "Expect Key to be passed with GET request";
+            }
+            return response.build();
+        }
+    }
+  learner_created: true
+- name: src/client/Request.java
+  visible: true
+  text: |
+    package client;
+
+    import com.beust.jcommander.Parameter;
+    import com.google.gson.Gson;
+
+    public class Request {
+        @Parameter(names = { "-t", "--type" }, description = "CRUD operation")
+        private String type;
+
+        @Parameter(names = { "-k", "--key" }, description = "String key")
+        private String key;
+
+        @Parameter(names = { "-v", "--value" }, description = "Value to save in 'set' operation")
+        private String value;
+
+        @Override
+        public String toString() {
+            return new Gson().toJson(this);
+        }
+    }
+  learner_created: true
+- name: src/server/models/Response.java
+  visible: true
+  text: |
+    package server.models;
+
+    import com.google.gson.Gson;
+
+    public class Response {
+        private final String response;
+        private final String value;
+        private final String reason;
+
+        public String serializeToJson() {
+            return new Gson().toJson(this);
+        }
+
+        public Response(ResponseBuilder builder) {
+            this.response = builder.response;
+            this.value = builder.value;
+            this.reason = builder.reason;
+        }
+
+        public static class ResponseBuilder {
+            private String response;
+            private String value;
+            private String reason;
+
+            public ResponseBuilder setResponse(Result result) {
+                this.response = result == Result.OK ? "OK" : "ERROR";
+                return this;
+            }
+
+            public ResponseBuilder setValue(String value) {
+                this.value = value;
+                return this;
+            }
+
+            public ResponseBuilder setReason(String reason) {
+                this.reason = reason;
+                return this;
+            }
+
+            public Response build() {
+                return new Response(this);
+            }
+        }
+    }
+  learner_created: true
+- name: src/server/models/RequestType.java
+  visible: true
+  text: |
+    package server.models;
+
+    public enum RequestType {
+        EXIT("exit"),
+        GET("get"),
+        SET("set"),
+        DELETE("delete");
+
+        private final String stringRepresentation;
+
+        RequestType(String stringRepresentation) {
+            this.stringRepresentation = stringRepresentation;
+        }
+
+        public static RequestType getTypeFromString(String str) {
+            switch (str) {
+                case "get":
+                    return RequestType.GET;
+                case "set":
+                    return RequestType.SET;
+                case "delete":
+                    return RequestType.DELETE;
+                case "exit":
+                    return RequestType.EXIT;
+                default:
+                    assert false : "Invalid Request type passed";
+                    return null;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return stringRepresentation;
+        }
+    }
+  learner_created: true
+- name: test/JsonRequestBuilder.java
+  visible: false
+  text: |-
+    import com.google.gson.Gson;
+    import com.google.gson.JsonObject;
+
+    class JsonBuilder {
+
+        private final Gson gson = new Gson();
+        private final JsonObject jsonObject = new JsonObject();
+
+        private JsonBuilder() {
+        }
+
+        public static JsonBuilder newBuilder() {
+            return new JsonBuilder();
+        }
+
+        public JsonBuilder addValue(String key, String value) {
+            jsonObject.addProperty(key, value);
+            return this;
+        }
+
+        public JsonBuilder addJsonObject(String key, JsonObject object) {
+            jsonObject.add(key, object);
+            return this;
+        }
+
+        public String getAsString() {
+            return jsonObject.toString();
+        }
+
+        public JsonObject getAsJsonObject() {
+            return jsonObject;
+        }
+    }
+  learner_created: false
+- name: src/client/data/testGet.json
+  visible: true
+  learner_created: true
+- name: src/client/data/testDelete.json
+  visible: true
+  learner_created: true
+- name: src/client/data/testSet.json
+  visible: true
+  learner_created: true
+- name: src/server/data/db.json
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/projects/65/stages/352/implement#comment
-status: Unchecked
-record: -1
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Tue, 24 Aug 2021 10:09:17 UTC
+record: 5

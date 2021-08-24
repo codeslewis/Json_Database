@@ -1,31 +1,43 @@
 package server;
 
+import server.controllers.Controller;
+
+import server.models.Request;
+import server.models.Response;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Session extends Thread {
 
-    private final ServerSocket socketForClient;
-    private boolean exit = false;
+    private final Socket socket;
+    private final DataInputStream inputStream;
+    private final DataOutputStream outputStream;
+    private final Controller controller;
+    private final AtomicBoolean serverStoppingFlag;
 
-    public Session(ServerSocket socketForClient) {
-        this.socketForClient = socketForClient;
+    public Session(Socket socket, DataInputStream inputStream, DataOutputStream outputStream, Controller controller, AtomicBoolean serverStoppingFlag) {
+        this.socket = socket;
+        this.inputStream = inputStream;
+        this.outputStream = outputStream;
+        this.controller = controller;
+        this.serverStoppingFlag = serverStoppingFlag;
     }
+
 
     @Override
     public void run() {
-        do {
+        try (socket; inputStream; outputStream) {
+            Request request = Request.deserializeFromJson(inputStream.readUTF());
 
-        } while (!exit);
-        try (
-                Socket socket = socketForClient.accept();
-                DataInputStream input = new DataInputStream(socket.getInputStream());
-                DataOutputStream output = new DataOutputStream(socket.getOutputStream())
-        ) {
-            // TODO implement concurrent access
+            Response res = controller.handleRequest(request);
+            outputStream.writeUTF(res.serializeToJson());
+            if (controller.isExit()) {
+                serverStoppingFlag.set(true);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

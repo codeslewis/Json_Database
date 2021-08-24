@@ -2,58 +2,53 @@ package server;
 
 import server.controllers.Controller;
 import server.controllers.Database;
-import server.models.Request;
-import server.models.Response;
 import server.repositories.DataRepository;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
 
     private static final String ADDRESS = "127.0.0.1";
     private static final int PORT = 2000;
+    private static final AtomicBoolean exit = new AtomicBoolean(false);
+    private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private static final Controller dbController = new Database(DataRepository.getInstance());
 
     public static void main(String[] args) {
-//        startServer();
         System.out.println("Server started!");
-        boolean exit = false;
 
-        do {
-            try (
-                    ServerSocket serverSocket = new ServerSocket(PORT);
-                    Socket socket = serverSocket.accept();
-                    DataInputStream input = new DataInputStream(socket.getInputStream());
-                    DataOutputStream output = new DataOutputStream(socket.getOutputStream())
-            ) {
-                Request request = Request.deserializeFromJson(input.readUTF());
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            serverSocket.setSoTimeout(5);
 
-                Controller dbController = new Database(DataRepository.getInstance());
-                Response res = dbController.handleRequest(request);
-                output.writeUTF(res.serializeToJson());
-                if (dbController.isExit()) {
-                    exit = true;
+            while (!exit.get()) {
+                Socket socket;
+
+                try {
+                    socket = serverSocket.accept();
+                } catch (SocketTimeoutException e) {
+                    continue;
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+
+                DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+
+                executor.submit(new Session(socket, inputStream, outputStream, dbController, exit));
             }
 
-        } while (!exit);
-    }
+            executor.shutdown();
 
-    static void startServer() {
-        try (ServerSocket server = new ServerSocket(PORT, 50, InetAddress.getByName(ADDRESS))) {
-            System.out.println("Server started!");
-            Session session = new Session(server);
-            System.out.println("New Session accepted");
-            session.start();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
 }

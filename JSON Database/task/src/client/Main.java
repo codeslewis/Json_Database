@@ -7,17 +7,21 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Main {
 
     private static final String ADDRESS = "127.0.0.1";
     private static final int PORT = 2000;
+    private static final String DATA_PATH = "src/client/data/";
 
     public static void main(String[] args) {
         start(args);
     }
 
-    static void start(String[] argv) {
+    private static void start(String[] argv) {
         System.out.println("Client started!");
 
         try (
@@ -31,8 +35,17 @@ public class Main {
                     .build()
                     .parse(argv);
 
-            System.out.println("Sent: " + request);
-            output.writeUTF(request.toString());
+            String req = request.toString();
+
+            if (request.isRequestFromFile()) {
+                // reassign request to details in file
+                String fileName = request.getInputFile();
+                Path pathToFile = Paths.get(DATA_PATH, fileName);
+                req = readJsonFromFile(pathToFile);
+            }
+
+            System.out.println("Sent: " + req);
+            output.writeUTF(req);
 
             String response = input.readUTF();
             System.out.println("Received: " + response);
@@ -40,6 +53,16 @@ public class Main {
             e.printStackTrace();
         }
 
+    }
+
+    private static String readJsonFromFile(Path pathToFile) {
+        try {
+            return Files.readString(pathToFile);
+        } catch (IOException e) {
+            // Further handle this exception
+            e.printStackTrace();
+        }
+        return "";
     }
 }
 
